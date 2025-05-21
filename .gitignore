@@ -45,4 +45,7 @@ ehthumbs.db
 Thumbs.db
 
 # Clean Data No Annotations
-clean-data-no-annotations/ 
+clean-data-no-annotations/
+
+# JSONL files
+*.jsonl 

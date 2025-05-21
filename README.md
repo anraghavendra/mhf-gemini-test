@@ -6,6 +6,7 @@ This repository contains code for processing fetal ultrasound images and fine-tu
 
 ### Data Processing
 The `data_processing/` directory contains scripts for dataset preparation:
+- `create_gcs_bucket.py` - Creates and configures the Google Cloud Storage bucket
 - `create_medical_jsonl.py` - Creates JSONL files for model training
 - `delete_old_folders.py` - Utility for cleaning up old data directories
 - `download_dataset.py` - Downloads the dataset from Kaggle
@@ -41,6 +42,7 @@ gcloud config set project mhf-test
 1. Process the dataset:
 ```bash
 cd data_processing
+python create_gcs_bucket.py
 python download_dataset.py
 python extract_folders.py
 python remove_annotated_images.py
