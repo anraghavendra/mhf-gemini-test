@@ -1,0 +1,4 @@
+kaggle
+google-cloud-storage
+google-cloud-aiplatform>=1.38.1
+vertexai>=0.0.1 
