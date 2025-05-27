@@ -1,3 +1,10 @@
+"""
+Upload the partitioned dataset to Google Cloud Storage.
+
+@author: Abhinav Raghavendra
+@year: 2025
+"""
+
 import subprocess
 import os
 from pathlib import Path

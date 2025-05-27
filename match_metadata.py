@@ -1,3 +1,10 @@
+"""
+Match and process metadata for fetal ultrasound images.
+
+@author: Daniel Damico
+@year: 2025
+"""
+
 import os
 import pandas as pd
 import shutil

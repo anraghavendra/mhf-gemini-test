@@ -1,3 +1,10 @@
+"""
+Download the fetal ultrasound dataset from Kaggle.
+
+@author: Abhinav Raghavendra
+@year: 2025
+"""
+
 import os
 import kaggle
 from pathlib import Path

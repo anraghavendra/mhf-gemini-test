@@ -1,3 +1,10 @@
+"""
+Generate JSONL files for model training from the dataset.
+
+@author: Abhinav Raghavendra
+@year: 2025
+"""
+
 import json
 import os
 import pandas as pd

@@ -1,3 +1,10 @@
+"""
+Fine-tune the Gemini model on the fetal ultrasound dataset.
+
+@author: Abhinav Raghavendra
+@year: 2025
+"""
+
 import time
 import vertexai
 from vertexai.tuning import sft

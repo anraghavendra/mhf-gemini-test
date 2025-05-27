@@ -1,3 +1,10 @@
+"""
+Partition the dataset into train, validation, and test sets.
+
+@author: Daniel Damico
+@year: 2025
+"""
+
 import os
 import shutil
 import random

@@ -1,3 +1,10 @@
+"""
+Generate overlays for fetal brain ultrasound images.
+
+@author: Daniel Damico
+@year: 2025
+"""
+
 import cv2
 import numpy as np
 import os
