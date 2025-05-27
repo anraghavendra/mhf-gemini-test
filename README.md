@@ -10,6 +10,7 @@ This repository contains code for processing fetal ultrasound images and fine-tu
 - `generate_overlays.py` - Generates overlays for the ultrasound images
 - `partition_dataset.py` - Splits the dataset into train/val/test sets
 - `generate_jsonl.py` - Creates JSONL files for model training
+- `upload_dataset.py` - Uploads the partitioned dataset to Google Cloud Storage
 - `upload_jsonl.py` - Uploads JSONL files to Google Cloud Storage
 
 ### Model Training
@@ -61,17 +62,22 @@ python generate_overlays.py
 python partition_dataset.py
 ```
 
-5. Generate JSONL files:
+5. Upload the partitioned dataset to GCS:
+```bash
+python upload_dataset.py
+```
+
+6. Generate JSONL files:
 ```bash
 python generate_jsonl.py
 ```
 
-6. Upload JSONL files to GCS:
+7. Upload JSONL files to GCS:
 ```bash
 python upload_jsonl.py
 ```
 
-7. Fine-tune the model:
+8. Fine-tune the model:
 ```bash
 python fine_tune_model.py
 ```
