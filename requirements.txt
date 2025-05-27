@@ -1,1 +1,7 @@
-kaggle==1.5.16 
+kaggle==1.5.16
+opencv-python==4.9.0.80
+numpy==1.26.4
+pandas==2.2.1
+google-cloud-storage==2.14.0
+google-cloud-aiplatform==1.42.1
+pathlib==1.0.1 
