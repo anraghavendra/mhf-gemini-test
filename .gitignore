@@ -39,4 +39,16 @@ ENV/
 .idea/
 .vscode/
 *.swp
-*.swo 
+*.swo
+
+# Project specific
+balanced_dataset/
+partitioned_dataset/
+*.jsonl
+*.csv
+*.png
+*.jpg
+*.jpeg
+
+# Logs
+*.log 

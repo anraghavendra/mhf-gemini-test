@@ -1,22 +1,15 @@
 """
-Generate JSONL files for model training from the balanced dataset.
+Convert test dataset to batch prediction format.
 
 @author: Abhinav Raghavendra
 @year: 2025
 """
 
 import json
-import os
 import pandas as pd
-from pathlib import Path
-import re
 
-def natural_sort_key(s):
-    # Extract numbers from the filename for sorting
-    return [int(text) if text.isdigit() else text.lower()
-            for text in re.split('([0-9]+)', str(s))]
-
-def create_jsonl_example(image_path, label, bucket_path, ellipse_params=None, metadata=None):
+def create_dynamic_prompt(metadata):
+    """Create a dynamic prompt based on the image's metadata and ellipse parameters."""
     # Base prompt
     base_prompt = """You are a diagnostic medical AI trained in fetal neuroimaging.
 
@@ -64,14 +57,14 @@ Base your classification on the following medically relevant criteria:
     – Do all visible structures appear appropriate for the estimated gestational age?
     – Is the brain shape and size appropriate for the gestational age?"""
 
-    # Add ellipse parameters to the prompt if available
-    if ellipse_params is not None:
+    # Add ellipse parameters if available
+    if all(key in metadata for key in ['ellipse_center_x', 'ellipse_center_y', 'ellipse_axis_x', 'ellipse_axis_y', 'ellipse_angle']):
         ellipse_info = f"""
 Brain Region Measurements:
 The green ellipse surrounding the brain region has the following characteristics:
-- Center: ({ellipse_params['ellipse_center_x']}, {ellipse_params['ellipse_center_y']}) pixels
-- Major and Minor Axes: ({ellipse_params['ellipse_axis_x']}, {ellipse_params['ellipse_axis_y']}) pixels
-- Rotation Angle: {ellipse_params['ellipse_angle']} degrees
+- Center: ({metadata['ellipse_center_x']}, {metadata['ellipse_center_y']}) pixels
+- Major and Minor Axes: ({metadata['ellipse_axis_x']}, {metadata['ellipse_axis_y']}) pixels
+- Rotation Angle: {metadata['ellipse_angle']} degrees
 
 Use these measurements to assess:
 1. Brain size and shape relative to gestational age
@@ -86,8 +79,19 @@ Note: While the position and orientation of the ellipse are not relevant, the sh
 3. Whether the brain shape and size are appropriate for normal development"""
         base_prompt += ellipse_info
 
-    # Add metadata to the prompt if available
-    if metadata is not None:
+    # Add metadata if available
+    metadata_fields = [
+        'baseline_value', 'accelerations', 'fetal_movement', 'uterine_contractions',
+        'light_decelerations', 'severe_decelerations', 'prolongued_decelerations',
+        'abnormal_short_term_variability', 'mean_value_of_short_term_variability',
+        'percentage_of_time_with_abnormal_long_term_variability',
+        'mean_value_of_long_term_variability', 'histogram_width', 'histogram_min',
+        'histogram_max', 'histogram_number_of_peaks', 'histogram_number_of_zeroes',
+        'histogram_mode', 'histogram_mean', 'histogram_median', 'histogram_variance',
+        'histogram_tendency'
+    ]
+    
+    if all(field in metadata for field in metadata_fields):
         metadata_info = f"""
 Additional Metadata:
 - Baseline Value: {metadata['baseline_value']} bpm
@@ -120,72 +124,62 @@ Use this metadata to enhance your analysis by considering:
         base_prompt += metadata_info
 
     base_prompt += "\n\nReturn your analysis as one word, either: normal, benign, malignant"
+    return base_prompt
 
-    return {
-        "contents": [
-            {
-                "role": "user",
-                "parts": [
-                    {
-                        "fileData": {
-                            "mimeType": "image/png",
-                            "fileUri": f"{bucket_path}/{image_path}"
-                        }
-                    },
-                    {
-                        "text": base_prompt
-                    }
-                ]
-            },
-            {
-                "role": "model",
-                "parts": [
-                    {
-                        "text": label
-                    }
-                ]
+def convert_to_batch_format(input_file, output_file, ground_truth_file):
+    """Convert the test dataset to batch prediction format."""
+    # Read the matched data CSV for ground truth and metadata
+    matched_data = pd.read_csv('partitioned_dataset/matched_data.csv')
+    matched_data = matched_data[matched_data['image_filename'].str.startswith('test/')]
+    
+    # Create a mapping of image filenames to their categories and metadata
+    ground_truth_map = dict(zip(matched_data['image_filename'], matched_data['category']))
+    metadata_map = dict(zip(matched_data['image_filename'], matched_data.to_dict('records')))
+    
+    with open(input_file, 'r') as f_in, open(output_file, 'w') as f_out, open(ground_truth_file, 'w') as f_truth:
+        for line in f_in:
+            data = json.loads(line)
+            # Extract the user message which contains the image
+            user_message = data['contents'][0]
+            
+            # Get the image filename from the fileUri
+            image_path = user_message['parts'][0]['fileData']['fileUri'].split('/')[-1]
+            
+            # Get metadata for this image
+            metadata = metadata_map.get(image_path, {})
+            
+            # Create dynamic prompt with this image's metadata
+            dynamic_prompt = create_dynamic_prompt(metadata)
+            
+            # Create the batch prediction format with the dynamic prompt
+            batch_format = {
+                "request": {
+                    "contents": [{
+                        "role": "user",
+                        "parts": [
+                            user_message['parts'][0],  # Image
+                            {"text": dynamic_prompt}  # Dynamic prompt with ellipse and metadata
+                        ]
+                    }]
+                }
             }
-        ]
-    }
-
-def generate_jsonl(folder_path, output_file, bucket_path, matched_data_csv, split):
-    # Read metadata from matched_data.csv
-    params_df = pd.read_csv(matched_data_csv)
-    params_dict = dict(zip(params_df['image_filename'], params_df.to_dict('records')))
-
-    jsonl_data = []
-    split_path = Path(folder_path) / split
-    if split_path.exists():
-        for label in ['normal', 'benign', 'malignant']:
-            label_path = split_path / label
-            if label_path.exists():
-                # Get all PNG files and sort them naturally
-                image_files = sorted(label_path.glob('*.png'), key=natural_sort_key)
-                for image_file in image_files:
-                    image_path = f"{split}/{label}/{image_file.name}"
-                    # Get metadata for this image if available
-                    metadata = params_dict.get(image_path)
-                    jsonl_data.append(create_jsonl_example(image_path, label, bucket_path, metadata, metadata))
-
-    # Write JSONL data to a file
-    with open(output_file, 'w') as f:
-        for item in jsonl_data:
-            f.write(json.dumps(item) + '\n')
-
-    print(f"JSONL file created successfully at {output_file}.")
-    print(f"Total examples: {len(jsonl_data)}")
+            
+            # Write to output file
+            f_out.write(json.dumps(batch_format) + '\n')
+            
+            # Get ground truth from the matched data
+            if image_path in ground_truth_map:
+                ground_truth = ground_truth_map[image_path]
+                f_truth.write(json.dumps({"ground_truth": ground_truth}) + '\n')
 
 def main():
-    # Define paths
-    folder_path = "balanced_dataset"
-    bucket_path = "gs://fetus-ultrasound-balanced-with-metadata/balanced_dataset"
-    matched_data_csv = "partitioned_dataset/matched_data.csv"
+    input_file = "jsonl/test_dataset.jsonl"
+    output_file = "batch_prediction_input.jsonl"
+    ground_truth_file = "ground_truth.jsonl"
     
-    # Process each split
-    for split in ['train', 'val', 'test']:
-        output_file = f"jsonl/balanced_{split}_dataset.jsonl"
-        print(f"\nProcessing {split} split...")
-        generate_jsonl(folder_path, output_file, bucket_path, matched_data_csv, split)
+    print("Converting test dataset to batch prediction format...")
+    convert_to_batch_format(input_file, output_file, ground_truth_file)
+    print(f"Conversion complete. Output written to {output_file} and ground truth to {ground_truth_file}")
 
 if __name__ == "__main__":
     main() 
