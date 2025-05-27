@@ -34,7 +34,21 @@ gcloud auth application-default login
 gcloud config set project mhf-test
 ```
 
-4. Set up Kaggle credentials:
+4. Enable required APIs in Google Cloud Console:
+- Go to [Vertex AI API](https://console.cloud.google.com/apis/library/aiplatform.googleapis.com) and enable it
+- Go to [Cloud Storage API](https://console.cloud.google.com/apis/library/storage.googleapis.com) and enable it
+- Go to [Cloud Build API](https://console.cloud.google.com/apis/library/cloudbuild.googleapis.com) and enable it
+- Go to [IAM API](https://console.cloud.google.com/apis/library/iam.googleapis.com) and enable it
+
+5. Set up GCS bucket permissions:
+- Go to [Cloud Storage](https://console.cloud.google.com/storage/browser)
+- Select your bucket (fetus-ultrasound-with-metadata)
+- Go to "Permissions" tab
+- Add the Vertex AI service account as a Storage Object Viewer
+  - Service account email format: `service-PROJECT_NUMBER@serverless-robot-prod.iam.gserviceaccount.com`
+  - Role: Storage Object Viewer
+
+6. Set up Kaggle credentials:
 - Download your `kaggle.json` file from Kaggle
 - Place it in the project root directory
 
